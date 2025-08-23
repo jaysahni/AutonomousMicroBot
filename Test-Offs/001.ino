@@ -15,7 +15,7 @@ const int CLICKS_PER_ROTATION = 12;
 const float GEAR_RATIO = 29.86F;
 const float WHEEL_DIAMETER = 3.2;
 const float WHEEL_CIRCUMFERENCE = 10.22;
-const float BOT_RADIUS = 4.14; // cm horizontal radius(wheels to center)
+const float BOT_RADIUS = 4.251; // cm horizontal radius(wheels to center)
 
 // Global variables for gyro-based turning
 double turnAngle = 0;
@@ -37,7 +37,7 @@ double total_turns = 0;
 
 // slow turns
 
-const double pwm_min = 50; // minimal PWM for movement
+const double pwm_min = 30; // minimal PWM for movement
 double Kpt = 0;            // proportional factor for turning
 double left_angle = 84.8;  // approx. “normal” left turn angle
 double right_angle = 83.8; // approx. “normal” right turn angle
@@ -48,11 +48,11 @@ double full_turn = 174;
 double kPs = 0.2; // small angle correction for going straight
 double kP = 0.4;  // for velocity control
 double str_min = 80;
-double mehta_sahni_constant = 0.042;
+double mehta_sahni_constant = 0.082;
 
 // Movement Values (Change here) ------------------------------------------------------------------------------------------------------------------------
 
-double targetTime = 60; // subtract 1.75 seconds for every 50cm the end has, including the dist_diff
+double targetTime = 20; // subtract 1.75 seconds for every 50cm the end has, including the dist_diff
 // 20 seconds for turn cali codes
 double end_distance = 44.5; //
 double end_delay = 0;
@@ -62,7 +62,7 @@ double dist_diff = 0; // forwawrd is positive
 
 // 30.3 is enter
 // for cali use 30 sec for 2 squares and 9 seconds for 4 backs
-char movement[200] = "L L L L";
+char movement[200] = "F150 L L F150 L L F150 L L F150";
 //"F80.3 R F50 L F50 L F100 R F50 B F50 L F100 L F50 R F50 R F50 L F50 L F50 B F150 R F50 R F50 B F50 L F50 L F100 L F100 L F50 R F100 L F50 L F50 L F50 R F50 L F50 L F50 E";
 // F30.3 F50 R F50 L F50 L F100 R F50 B F50 L F100 L F50 R F50 R F50 L F50 L F50 B F150 R F50 R F50 B F50 L F50 L F100 L F100 L F50 R F100 L F50 L F50 L F50 R F50 L F50 L F50 E
 // F50 L F50 L F50 L F50 L F50 L F50 L F50 L F50 L;
@@ -182,16 +182,89 @@ void fwd(double distance)
 }
 void back(double distance)
 {
-  delay(100);
+  int starting = millis();
   update();
-  reset();
-  while (ang() < full_turn)
+  delay(200);
+  while (-dL() + dR() < BOT_RADIUS * 3.14159 * 2)
   {
     update();
-    motors.setSpeeds(-pwm_min - abs(full_turn - (ang())) * Kpt / 9, pwm_min + abs(full_turn - (ang())) * Kpt / 9);
+    motors.setSpeeds(-pwm_min, pwm_min);
   }
   motors.setSpeeds(0, 0);
-  delay(100);
+  // delay(turnTime > (millis() - starting) ? turnTime - (millis() - starting) + 150: 150);
+  // delay(200);
+  reset();
+}
+
+// Curve turn with encoders only
+// direction:  1 = left curve, -1 = right curve
+// radius: desired curve radius in cm (from robot center to curve path)
+// angle: desired angle in degrees along curve
+// baseSpeed: PWM for outer wheel
+// Encoder-based curve with feedback
+// direction: 1 = left curve, -1 = right curve
+// radius: desired curve radius in cm (to robot center path)
+// angle_deg: curve angle in degrees
+// basePWM: approximate outer wheel speed
+void curveTurn(int direction, float radius, float angle_deg, int basePWM)
+{
+  reset();
+  update();
+
+  float angle_rad = angle_deg * M_PI / 180.0;
+
+  // Inner/outer radii
+  float Rin = radius - BOT_RADIUS;
+  float Rout = radius + BOT_RADIUS;
+
+  // Distances each wheel must travel
+  float dIn = Rin * angle_rad;
+  float dOut = Rout * angle_rad;
+
+  // Targets
+  float targetL, targetR;
+  if (direction == 1)
+  { // Left curve
+    targetL = dIn;
+    targetR = dOut;
+  }
+  else
+  { // Right curve
+    targetL = dOut;
+    targetR = dIn;
+  }
+
+  // Start PWM guesses
+  float leftPWM = basePWM;
+  float rightPWM = basePWM;
+
+  // Run until both wheels reach their distances
+  while (true)
+  {
+    update();
+    float curL = dL();
+    float curR = dR();
+
+    if (curL >= targetL && curR >= targetR)
+      break;
+
+    // Compute progress ratio
+    float progL = curL / targetL;
+    float progR = curR / targetR;
+
+    // Adjust PWM so both sides progress together
+    float error = progL - progR;
+
+    leftPWM = basePWM * (1.0 - 0.5 * error);
+    rightPWM = basePWM * (1.0 + 0.5 * error);
+
+    // Enforce minimum PWM
+
+    motors.setSpeeds(leftPWM, rightPWM);
+  }
+
+  motors.setSpeeds(0, 0);
+  delay(50);
   reset();
 }
 
@@ -264,18 +337,20 @@ void end(double d)
 
 void left()
 {
+  curveTurn(1, 25, 90, pwm_min + 50);
+  /*
   int starting = millis();
   update();
   delay(200);
-  while (-dL() + dR() < BOT_RADIUS * 3.14159)
-  {
+  while (-dL() + dR() < BOT_RADIUS * 3.14159) {
     update();
-    motors.setSpeeds(-pwm_min / 1.5, pwm_min / 1.5);
+    motors.setSpeeds(-pwm_min, pwm_min);
   }
-  motors.setSpeeds(0, 0);
-  // delay(turnTime > (millis() - starting) ? turnTime - (millis() - starting) + 150: 150);
-  delay(200);
+  motors.setSpeeds(0,0);
+  //delay(turnTime > (millis() - starting) ? turnTime - (millis() - starting) + 150: 150);
+  //delay(200);
   reset();
+  */
 
   /*
   int starting = millis();
@@ -314,20 +389,34 @@ void left(int val)
 void right()
 {
   int starting = millis();
+  update();
+  // delay(200);
+  while (dL() - dR() < BOT_RADIUS * 3.14159)
+  {
+    update();
+    motors.setSpeeds(pwm_min, -pwm_min);
+  }
+  motors.setSpeeds(0, 0);
+  // delay(turnTime > (millis() - starting) ? turnTime - (millis() - starting) + 150: 150);
+  // delay(200);
+  reset();
+
+  /*
+  int starting = millis();
   display.clear();
   reset();
   int timetest = millis();
   delay(100);
   reset();
-  while (ang() > -right_angle)
-  {
+  while (ang() > -right_angle) {
     update();
     motors.setSpeeds(pwm_min + abs(90 + (ang())) * Kpt, -pwm_min - abs(90 + (ang())) * Kpt);
   }
   motors.setSpeeds(0, 0);
-  display.print((millis() - timetest));
+  display.print((millis()-timetest));
   delay(100);
   reset();
+  */
 }
 
 void right(int val)
