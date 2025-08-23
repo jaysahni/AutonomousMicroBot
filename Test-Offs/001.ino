@@ -15,7 +15,7 @@ const int CLICKS_PER_ROTATION = 12;
 const float GEAR_RATIO = 29.86F;
 const float WHEEL_DIAMETER = 3.2;
 const float WHEEL_CIRCUMFERENCE = 10.22;
-const float BOT_RADIUS = 4.14; // cm horizontal radius(wheels to center)
+const float BOT_RADIUS = 4.151; // cm horizontal radius(wheels to center)
 
 // Global variables for gyro-based turning
 double turnAngle = 0;
@@ -37,7 +37,7 @@ double total_turns = 0;
 
 // slow turns
 
-const double pwm_min = 50; // minimal PWM for movement
+const double pwm_min = 30; // minimal PWM for movement
 double Kpt = 0;            // proportional factor for turning
 double left_angle = 84.8;  // approx. “normal” left turn angle
 double right_angle = 83.8; // approx. “normal” right turn angle
@@ -48,7 +48,7 @@ double full_turn = 174;
 double kPs = 0.2; // small angle correction for going straight
 double kP = 0.4;  // for velocity control
 double str_min = 80;
-double mehta_sahni_constant = 0.042;
+double mehta_sahni_constant = 0.082;
 
 // Movement Values (Change here) ------------------------------------------------------------------------------------------------------------------------
 
@@ -180,20 +180,6 @@ void fwd(double distance)
   delay(10 + delayer_amt); // Small delay to ensure stop
   reset();                 // Reset necessary parameters
 }
-void back(double distance)
-{
-  delay(100);
-  update();
-  reset();
-  while (ang() < full_turn)
-  {
-    update();
-    motors.setSpeeds(-pwm_min - abs(full_turn - (ang())) * Kpt / 9, pwm_min + abs(full_turn - (ang())) * Kpt / 9);
-  }
-  motors.setSpeeds(0, 0);
-  delay(100);
-  reset();
-}
 
 void end(double d)
 {
@@ -262,6 +248,22 @@ void end(double d)
   display.print((micros() - start_time) / 1e6, 2);
 }
 
+void back(double distance)
+{
+  int starting = millis();
+  update();
+  delay(200);
+  while (-dL() + dR() < BOT_RADIUS * 3.14159 * 2)
+  {
+    update();
+    motors.setSpeeds(-pwm_min, pwm_min);
+  }
+  motors.setSpeeds(0, 0);
+  // delay(turnTime > (millis() - starting) ? turnTime - (millis() - starting) + 150: 150);
+  delay(200);
+  reset();
+}
+
 void left()
 {
   int starting = millis();
@@ -270,7 +272,7 @@ void left()
   while (-dL() + dR() < BOT_RADIUS * 3.14159)
   {
     update();
-    motors.setSpeeds(-pwm_min / 1.5, pwm_min / 1.5);
+    motors.setSpeeds(-pwm_min, pwm_min);
   }
   motors.setSpeeds(0, 0);
   // delay(turnTime > (millis() - starting) ? turnTime - (millis() - starting) + 150: 150);
@@ -314,19 +316,16 @@ void left(int val)
 void right()
 {
   int starting = millis();
-  display.clear();
-  reset();
-  int timetest = millis();
-  delay(100);
-  reset();
-  while (ang() > -right_angle)
+  update();
+  delay(200);
+  while (dL() + -dR() < BOT_RADIUS * 3.14159)
   {
     update();
-    motors.setSpeeds(pwm_min + abs(90 + (ang())) * Kpt, -pwm_min - abs(90 + (ang())) * Kpt);
+    motors.setSpeeds(pwm_min, -pwm_min);
   }
   motors.setSpeeds(0, 0);
-  display.print((millis() - timetest));
-  delay(100);
+  // delay(turnTime > (millis() - starting) ? turnTime - (millis() - starting) + 150: 150);
+  delay(200);
   reset();
 }
 
