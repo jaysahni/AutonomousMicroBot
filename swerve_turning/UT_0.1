@@ -24,6 +24,9 @@ double gyroOffset = 0;
 double gyroLastUpdate = 0;
 double velocity_error_R;
 double velocity_error_L;
+double position_error_L;
+double position_error_R;
+double angle_error;
 // dillon new
 double total_fwd = 0;
 double delayer_amt;
@@ -49,8 +52,10 @@ double full_turn = 174;
 // straight
 double kPs = 0.2; // small angle correction for going straight
 double kP = 0.4;  // for velocity control
-double swerve_kP = 0.1;
-double str_min = 40;
+double swerve_kP =  0.05;
+double swerve_kD = 0.1;
+double swerve_kA = 0;
+double str_min = 35;
 double mehta_sahni_constant = 0.082;
 
 // Movement Values (Change here) ------------------------------------------------------------------------------------------------------------------------
@@ -295,72 +300,48 @@ void back(double distance) {
 }
 //true is left, false is right
 void curveTurn(bool dir){
-  double distance = (25 - BOT_RADIUS)* 3.14159 * 0.5;
+  double distance = (25.0 - BOT_RADIUS)* 3.14159 * 0.5;
   double ratio = (25.0-BOT_RADIUS)/(25.0+BOT_RADIUS);
   update();
-  double t0 = micros(); // Start time in microseconds
+  double left_pwm = str_min;
+  double right_pwm = str_min;
+  double t0 = millis(); // Start time in microseconds
   double delta_T = turnTime;
   double delta_T_us = delta_T * 1e3; // Convert delta_T from seconds to microseconds
   if(dir){
-    double left_pwm = str_min;
-    double right_pwm = str_min*1/ratio;
+    right_pwm = str_min*1/ratio;
   }
   else{
-    double right_pwm = str_min;
-    double left_pwm = str_min*1/ratio;
+    left_pwm = str_min*1/ratio;
   }
 
-  double velocity_setpoint = 0; // Initialize the velocity setpoint
+  double velocity_setpoint = 20; // Initialize the velocity setpoint
   double elapsed_time;
 
   // Main control loop
   while (true)
   {
-    elapsed_time = micros() - t0; // Elapsed time in microseconds
+    elapsed_time = millis() - t0; // Elapsed time in microseconds
     update();
-    // Exit condition: Distance has been covered or time has exceeded delta_T
-    
-    /*
-    // Determine velocity setpoint based on elapsed time
-    if (elapsed_time <= delta_T_us / 4)
-    {
-      // Acceleration phase
-      velocity_setpoint = (16.0 * distance) / (3.0 * delta_T * delta_T) * (elapsed_time / 1e6);
-    }
-    else if (elapsed_time <= 3 * delta_T_us / 4)
-    {
-      // Constant velocity phase
-      velocity_setpoint = (4.0 * distance) / (3.0 * delta_T);
-    }
-    else
-    {
-      // Deceleration phase
-      double t_dec = elapsed_time - 3 * delta_T_us / 4;
-      velocity_setpoint = (16.0 * distance) / (3.0 * delta_T * delta_T) * ((delta_T / 4) - t_dec / 1e6);
-    }
-    */
-    velocity_setpoint = 20;
-    // Update PWM values based on velocity feedback and setpoint
     if(dir){
-      velocity_error_L = velocity_setpoint - vL();
-      velocity_error_R = 1.0/ratio * velocity_setpoint - vR();
+      position_error_L = dL() - (velocity_setpoint * elapsed_time/1e3);
+      position_error_R = dR() - (velocity_setpoint*1/ratio * elapsed_time/1e3);
+      velocity_error_L = vL() - velocity_setpoint;
+      velocity_error_R = vR() - 1.0/ratio * velocity_setpoint;
+      angle_error =  -imu.g.z /25.0 - (velocity_setpoint + 1/ratio * velocity_setpoint)/(2*25.0); 
+      left_pwm -= (swerve_kP * position_error_L + swerve_kD * velocity_error_L - swerve_kA * angle_error);
+      right_pwm -= (swerve_kP * position_error_R + swerve_kD * velocity_error_R + swerve_kA * angle_error);
     }else{
-      velocity_error_L = 1.0/ratio * velocity_setpoint - vL();
-      velocity_error_R = velocity_setpoint - vR();
+      position_error_L = dL() - (velocity_setpoint*1/ratio * elapsed_time/1e3);
+      position_error_R = dR() - (velocity_setpoint * elapsed_time/1e3);
+      velocity_error_L = vL() - 1.0/ratio * velocity_setpoint;
+      velocity_error_R = vR() - velocity_setpoint;
+      angle_error =  imu.g.z * 1.0/25.0 - (velocity_setpoint + 1/ratio * velocity_setpoint)/(2*25.0); 
+      left_pwm -= (swerve_kP * position_error_L + swerve_kD * velocity_error_L - swerve_kA * angle_error);
+      right_pwm -= (swerve_kP * position_error_R + swerve_kD * velocity_error_R + swerve_kA * angle_error);
     }
 
-    left_pwm += swerve_kP * velocity_error_L;
-    right_pwm += swerve_kP * velocity_error_R;
 
-    /*
-    if(true){
-      double c =dL()/(dR()+0.0000001);
-      right_pwm += 0.0000001 * (c-ratio);
-    }
-    else{
-      left_pwm += swerve_Kpt * (vR()/vL() - ratio);
-    }
-    */
     left_pwm = constrain(left_pwm, str_min, 400);
     right_pwm = constrain(right_pwm, str_min, 400);
     
