@@ -14,7 +14,7 @@ IMU imu;
 const int CLICKS_PER_ROTATION = 12;
 const float GEAR_RATIO = 29.86F;
 const float WHEEL_DIAMETER = 3.2;
-const float WHEEL_CIRCUMFERENCE = 10.22;
+const float WHEEL_CIRCUMFERENCE = 10.21;
 const float BOT_RADIUS = 4.08; // cm horizontal radius(wheels to center)
 
 // Global variables for gyro-based turning
@@ -50,10 +50,10 @@ double kPs = 0.4; // small angle correction for going straight
 double kP = 0.4;  // for velocity control
 double swerve_kD = 1.5;//0.1;
 double str_min = 50;
-double mehta_sahni_constant = 0.082;
+double mehta_sahni_constant = 0.000; // higher means more left
 
 // Movement Values (Change here) ------------------------------------------------------------------------------------------------------------------------
-double targetTime = 60; // subtract 1.75 seconds for every 50cm the end has, including the dist_diff
+double targetTime = 5; // subtract 1.75 seconds for every 50cm the end has, including the dist_diff
 // 20 seconds for turn cali codes
 double end_distance = 94.5; //
 double end_delay = 0;
@@ -64,7 +64,7 @@ double dist_diff = 0; // forwawrd is positive
 // fwd before and after pivot subtract 4.2 (bot radius) IE, F45.8
 // for cali use 30 sec for 2 squares and 9 seconds for 4 backs
  
-char movement[400] = "L L L L L L L L L L L L L L L L";
+char movement[400] = "F250";
 
 //"F81 R F150 L F100 R F50 B50 R F100 L F46 > F44 > F35 B35 R F50 L F200 R F50 R F105 L F50 L F105 B100 L F50 R E";
 
@@ -635,7 +635,7 @@ void turnSensorUpdate()
   // Read the measurements from the gyro.
   imu.readGyro();
   turnRate = imu.g.z - gyroOffset;
-  if(fabs(turnRate) * 0.07 < 0.1){return;}
+  if(fabs(turnRate) * 0.07 < 0.2){return;}
 
   // Figure out how much time has passed since the last update (dt)
   uint16_t m = micros();
