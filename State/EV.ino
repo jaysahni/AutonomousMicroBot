@@ -14,8 +14,8 @@ IMU imu;
 const int CLICKS_PER_ROTATION = 12;
 const float GEAR_RATIO = 29.86F;
 const float WHEEL_DIAMETER = 3.2;
-const float WHEEL_CIRCUMFERENCE = 10.22;
-const float BOT_RADIUS = 4.151; // cm horizontal radius(wheels to center)
+const float WHEEL_CIRCUMFERENCE = 10.18;
+const float BOT_RADIUS = 4.09; // cm horizontal radius(wheels to center)
 double swerve_kP =  0; //0.05;
 double swerve_kD = 2.5;//0.1;
 double swerve_kA = 0;
@@ -56,17 +56,17 @@ const double turnTime = 800;
 double full_turn = 174;
 
 // straight
-double kPs = 0; // small angle correction for going straight
+double kPs = 0.3; // small angle correction for going straight
 double kP = 0.4;  // for velocity control
-double str_min = 80;
-double mehta_sahni_constant = 0.045;
+double str_min = 40;
+double mehta_sahni_constant = 0.052;
 
 // Movement Values (Change here) ------------------------------------------------------------------------------------------------------------------------
 
-double targetTime = 15; 
+double targetTime = 20; 
 
 double lengthDist = 1000;
-double offset = 50; 
+double offset = 90; 
 
 double end_distance; //
 double end_delay = 0;
@@ -99,7 +99,7 @@ String buildCanBypass()
   seq+="D50 ";
   seq += "R ";
   seq += "E";
-  end_distance=offset;
+  end_distance=offset-3;
   return seq;
 }
 char movement[200];
@@ -246,7 +246,7 @@ void longf(double distance)
 {
   update();
   double t0 = micros(); // Start time in microseconds
-  double delta_T = targetTime - 6;
+  double delta_T = targetTime - 5;
   double delta_T_us = delta_T * 1e6; // Convert delta_T from seconds to microseconds
   double left_pwm = str_min;
   double right_pwm = str_min;
@@ -293,8 +293,8 @@ void longf(double distance)
     right_pwm += kP * velocity_error_R;
 
     // Constrain PWM values to valid range
-    left_pwm = constrain(left_pwm, pwm_min, 400);
-    right_pwm = constrain(right_pwm, pwm_min, 400);
+    left_pwm = constrain(left_pwm, str_min +15, 400);
+    right_pwm = constrain(right_pwm, str_min, 400);
     right_pwm -= kPs * ang();
     // Set motor speeds
     motors.setSpeeds(left_pwm, right_pwm);
