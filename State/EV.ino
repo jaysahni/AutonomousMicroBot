@@ -46,13 +46,16 @@ double total_turns = 0;
 
 // slow turns
 
-const double pwm_min = 50; // minimal PWM for movement
+const double pwm_min = 80; // minimal PWM for movement
 double Kpt = 0;            // proportional factor for turning
-double left_angle = 79.5;  // approx. “normal” left turn angleseq
-double right_angle = 79.5; // approx. “normal” right turn angle
+double left_angle = 85.5;  // approx. “normal” left turn angleseq
+double right_angle = 85.5; // approx. “normal” right turn angle
+
+
+
 double left_angleX = 72.5;  // approx. “normal” left turn angle
 double right_angleX = 83; // approx. “normal” right turn angle
-const double turnTime = 800;
+const double turnTime = 600;
 double full_turn = 174;
 
 // straight
@@ -111,7 +114,7 @@ void setup()
 
   String moveSeq = buildCanBypass(); 
   moveSeq.toCharArray(movement, sizeof(movement));
-  delay(500);
+  delay(1000);
   turnSensorSetup();
   turnSensorReset();
   calculateTotalTurns(movement);
@@ -201,7 +204,7 @@ void fwd(double distance)
 {
   update();
   double t0 = micros(); // Start time in microseconds
-  double delta_T = 2;
+  double delta_T = 1.7;
   double delta_T_us = delta_T * 1e6; // Convert delta_T from seconds to microseconds
   double left_pwm = str_min;
   double right_pwm = str_min;
@@ -251,11 +254,10 @@ void longf(double distance)
   double left_pwm = str_min;
   double right_pwm = str_min;
 
-  double velocity_setpoint = 0; // Initialize the velocity setpoint
+  double velocity_setpoint = distance/delta_T; // Initialize the velocity setpoint
   double elapsed_time;
 
   // Main control loop
-
 
   while (true)
   {
@@ -268,23 +270,6 @@ void longf(double distance)
     }
 
     // Determine velocity setpoint based on elapsed time
-    if (elapsed_time <= delta_T_us / 16)
-    {
-      // Acceleration phase
-      velocity_setpoint = (256.0 * distance) / (15.0 * delta_T * delta_T) * (elapsed_time / 1e6);
-    }
-    else if (elapsed_time <= 15 * delta_T_us / 16)
-    {
-      // Constant velocity phase
-      velocity_setpoint = (16.0 * distance) / (14.0 * delta_T);
-    }
-    else
-    {
-      // Deceleration phase
-      double t_dec = elapsed_time - 15 * delta_T_us / 16;
-      velocity_setpoint = (256.0 * distance) / (15.0 * delta_T * delta_T) * ((delta_T / 16) - t_dec / 1e6);
-    }
-
     // Update PWM values based on velocity feedback and setpoint
     double velocity_error_L = velocity_setpoint - vL();
     double velocity_error_R = velocity_setpoint - vR();
@@ -377,15 +362,15 @@ void left()
 {
   int starting = millis();
   update();
-  delay(200);
-  while (-dL() + dR() < BOT_RADIUS * 3.14159)
+  delay(50);
+  while(fabs(ang()) < left_angle)//while (-dL() + dR() < BOT_RADIUS * 3.14159)
   {
     update();
     motors.setSpeeds(-pwm_min, pwm_min);
   }
   motors.setSpeeds(-5,-5);
   // delay(turnTime > (millis() - starting) ? turnTime - (millis() - starting) + 150: 150);
-  delay(100);
+  delay(50);
   reset();
 }
 
@@ -394,7 +379,7 @@ void pivotLeft(double angleDeg)
 {
   reset();
   update();
-  delay(200);
+  delay(50);
 
   double right_pwm = 100;
   double velocity_error_R;
@@ -412,7 +397,7 @@ void pivotLeft(double angleDeg)
   }
 
   motors.setSpeeds(0, 0);
-  delay(100);
+  delay(50);
   reset();
 }
 void left(int val) {
@@ -473,7 +458,7 @@ void right()
   int starting = millis();
   update();
   delay(200);
-  while (dL() + -dR() < BOT_RADIUS * 3.14159)
+  fabs(ang()) < right_angle)//while (dL() + -dR() < BOT_RADIUS * 3.14159)
   {
     update();
     motors.setSpeeds(pwm_min, -pwm_min);
