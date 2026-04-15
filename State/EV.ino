@@ -48,8 +48,8 @@ double total_turns = 0;
 
 const double pwm_min = 80; // minimal PWM for movement
 double Kpt = 0;            // proportional factor for turning
-double left_angle = 85.5;  // approx. “normal” left turn angleseq
-double right_angle = 85.5; // approx. “normal” right turn angle
+double left_angle = 78.5;  // approx. “normal” left turn angleseq
+double right_angle = 79.1; // approx. “normal” right turn angle
 
 
 
@@ -92,8 +92,8 @@ String buildCanBypass()
   double leg = sqrt(pow(halfDist, 2) + pow(offset, 2));
 
   String seq = "";  
-  seq += "L "; // + String(angleDeg-constrain(3.25*(leg/330-1),-1,2.25), 1) + " "; 
-  seq+="D50 ";                // turn toward cans
+  seq += "L L L L L L L L L L L L L L L L "; // + String(angleDeg-constrain(3.25*(leg/330-1),-1,2.25), 1) + " "; 
+  seq+="D50000 ";                // turn toward cans
   seq += "F" + String(offset, 1) + " ";  // offset straight
   seq+="D50 ";
   seq += "R "; //+ String(2*angleDeg+7+constrain(20*(leg/350-1),2,10), 1) + " ";
@@ -102,7 +102,7 @@ String buildCanBypass()
   seq+="D50 ";
   seq += "R ";
   seq += "E";
-  end_distance=offset-3;
+  end_distance=offset - BOT_RADIUS;
   return seq;
 }
 char movement[200];
@@ -238,9 +238,12 @@ void fwd(double distance)
     // Set motor speeds
     motors.setSpeeds(left_pwm, right_pwm);
   }
+  while(dR() - distance > 0.2){
+    motors.setSpeeds(-4, -(dR() - distance)/fabs(dR()-distance) * str_min);
+  }
 
   // Stop motors at the end
-  motors.setSpeeds(0, 0);
+  motors.setSpeeds(-4, -4);
   delay(10 + delayer_amt); // Small delay to ensure stop
   reset();                 // Reset necessary parameters
 }
@@ -284,10 +287,12 @@ void longf(double distance)
     // Set motor speeds
     motors.setSpeeds(left_pwm, right_pwm);
   }
-
+  while(dR() - distance > 0.2){
+    motors.setSpeeds(-4, -(dR() - distance)/fabs(dR()-distance) * str_min);
+  }
 
   // Stop motors at the end
-  motors.setSpeeds(0, 0);
+  motors.setSpeeds(-4, -4);
   delay(10 + delayer_amt); // Small delay to ensure stop
   reset();                 // Reset necessary parameters
 }
@@ -362,15 +367,15 @@ void left()
 {
   int starting = millis();
   update();
-  delay(50);
+  delay(100);
   while(fabs(ang()) < left_angle)//while (-dL() + dR() < BOT_RADIUS * 3.14159)
   {
     update();
-    motors.setSpeeds(-pwm_min, pwm_min);
+    motors.setSpeeds(-pwm_min -4, pwm_min);
   }
   motors.setSpeeds(-5,-5);
   // delay(turnTime > (millis() - starting) ? turnTime - (millis() - starting) + 150: 150);
-  delay(50);
+  delay(100);
   reset();
 }
 
@@ -457,11 +462,11 @@ void right()
 {
   int starting = millis();
   update();
-  delay(200);
-  fabs(ang()) < right_angle)//while (dL() + -dR() < BOT_RADIUS * 3.14159)
+  delay(100);
+  while(fabs(ang()) < right_angle)//while (dL() + -dR() < BOT_RADIUS * 3.14159)
   {
     update();
-    motors.setSpeeds(pwm_min, -pwm_min);
+    motors.setSpeeds(pwm_min+4, -pwm_min);
   }
   motors.setSpeeds(-5,-5);
   // delay(turnTime > (millis() - starting) ? turnTime - (millis() - starting) + 150: 150);
