@@ -48,8 +48,8 @@ double total_turns = 0;
 
 const double pwm_min = 80; // minimal PWM for movement
 double Kpt = 0;            // proportional factor for turning
-double left_angle = 78.5;  // approx. “normal” left turn angleseq
-double right_angle = 79.1; // approx. “normal” right turn angle
+double left_angle = 34.15;  // approx. “normal” left turn angleseq
+double right_angle = 34.15; // approx. “normal” right turn angle
 
 
 
@@ -59,14 +59,14 @@ const double turnTime = 600;
 double full_turn = 174;
 
 // straight
-double kPs = 0.3; // small angle correction for going straight
+double kPs = 0.5; // small angle correction for going straight
 double kP = 0.4;  // for velocity control
-double str_min = 40;
-double mehta_sahni_constant = 0.052;
+double str_min = 30;
+double mehta_sahni_constant = 0.045; // low to veer right, high to veer left
 
 // Movement Values (Change here) ------------------------------------------------------------------------------------------------------------------------
 
-double targetTime = 20; 
+double targetTime = 12; 
 
 double lengthDist = 1000;
 double offset = 90; 
@@ -92,16 +92,8 @@ String buildCanBypass()
   double leg = sqrt(pow(halfDist, 2) + pow(offset, 2));
 
   String seq = "";  
-  seq += "L L L L L L L L L L L L L L L L "; // + String(angleDeg-constrain(3.25*(leg/330-1),-1,2.25), 1) + " "; 
-  seq+="D50 ";                // turn toward cans
-  seq += "F" + String(offset * sqrt(2), 1) + " ";  // offset straight
-  seq+="D50 ";
-  seq += "R "; //+ String(2*angleDeg+7+constrain(20*(leg/350-1),2,10), 1) + " ";
-  seq+="D50 ";
-  seq += "F" + String(lengthDist + BOT_RADIUS/2 - 2 * offset, 1) + " ";  // long straight
-  seq+="D50 ";
-  seq += "R ";
-  seq += "E";
+
+  seq += "F400"; // String(lengthDist + BOT_RADIUS/2 - 2 * offset, 1) + " ";  // long straight
   end_distance=(offset - BOT_RADIUS/2) * sqrt(2);
   return seq;
 }
@@ -206,8 +198,8 @@ void fwd(double distance)
   double t0 = micros(); // Start time in microseconds
   double delta_T = 2;
   double delta_T_us = delta_T * 1e6; // Convert delta_T from seconds to microseconds
-  double left_pwm = str_min;
-  double right_pwm = str_min;
+  double left_pwm = str_min * 2;
+  double right_pwm = str_min * 2 -4;
 
   double velocity_setpoint = 0; // Initialize the velocity setpoint
   double elapsed_time;
@@ -232,21 +224,19 @@ void fwd(double distance)
     right_pwm += kP * velocity_error_R;
 
     // Constrain PWM values to valid range
-    left_pwm = constrain(left_pwm, pwm_min + 2, 400);
-    right_pwm = constrain(right_pwm, pwm_min, 400);
+    left_pwm = constrain(left_pwm, 0, 400);
+    right_pwm = constrain(right_pwm, 0, 400);
     right_pwm -= kPs * ang();
     // Set motor speeds
     motors.setSpeeds(left_pwm, right_pwm);
   }
-  while(dR() - distance > 0.2){
-    motors.setSpeeds(-4, -(dR() - distance)/fabs(dR()-distance) * str_min);
-  }
 
   // Stop motors at the end
-  motors.setSpeeds(-4, -4);
+  motors.setSpeeds(0, 0);
   delay(10 + delayer_amt); // Small delay to ensure stop
   reset();                 // Reset necessary parameters
 }
+
 
 void longf(double distance)
 {
@@ -257,10 +247,11 @@ void longf(double distance)
   double left_pwm = str_min;
   double right_pwm = str_min;
 
-  double velocity_setpoint = distance/delta_T; // Initialize the velocity setpoint
+  double velocity_setpoint = 0; // Initialize the velocity setpoint
   double elapsed_time;
 
   // Main control loop
+
 
   while (true)
   {
@@ -273,6 +264,23 @@ void longf(double distance)
     }
 
     // Determine velocity setpoint based on elapsed time
+    if (elapsed_time <= delta_T_us / 16)
+    {
+      // Acceleration phase
+      velocity_setpoint = (256.0 * distance) / (15.0 * delta_T * delta_T) * (elapsed_time / 1e6);
+    }
+    if (elapsed_time <= 15 * delta_T_us / 16)
+    {
+      // Constant velocity phase
+      velocity_setpoint = (16.0 * distance) / (14.0 * delta_T);
+    }
+    else
+    {
+      // Deceleration phase
+      double t_dec = elapsed_time - 15 * delta_T_us / 16;
+      velocity_setpoint = (256.0 * distance) / (15.0 * delta_T * delta_T) * ((delta_T / 16) - t_dec / 1e6);
+    }
+
     // Update PWM values based on velocity feedback and setpoint
     double velocity_error_L = velocity_setpoint - vL();
     double velocity_error_R = velocity_setpoint - vR();
@@ -281,20 +289,19 @@ void longf(double distance)
     right_pwm += kP * velocity_error_R;
 
     // Constrain PWM values to valid range
-    left_pwm = constrain(left_pwm, str_min +15, 400);
-    right_pwm = constrain(right_pwm, str_min, 400);
+    left_pwm = constrain(left_pwm, 0, 400);
+    right_pwm = constrain(right_pwm, 0, 400);
     right_pwm -= kPs * ang();
     // Set motor speeds
     motors.setSpeeds(left_pwm, right_pwm);
   }
-  while(dR() - distance > 0.2){
-    motors.setSpeeds(-4, -(dR() - distance)/fabs(dR()-distance) * str_min);
-  }
+
 
   // Stop motors at the end
-  motors.setSpeeds(-4, -4);
+  motors.setSpeeds(0, 0);
   delay(10 + delayer_amt); // Small delay to ensure stop
   reset();                 // Reset necessary parameters
+
 }
 
 void end(double d)
@@ -367,7 +374,7 @@ void left()
 {
   int starting = millis();
   update();
-  delay(100);
+  delay(200);
   while(fabs(ang()) < left_angle)//while (-dL() + dR() < BOT_RADIUS * 3.14159)
   {
     update();
@@ -375,7 +382,7 @@ void left()
   }
   motors.setSpeeds(-5,-5);
   // delay(turnTime > (millis() - starting) ? turnTime - (millis() - starting) + 150: 150);
-  delay(100);
+  delay(200);
   reset();
 }
 
@@ -462,7 +469,7 @@ void right()
 {
   int starting = millis();
   update();
-  delay(100);
+  delay(200);
   while(fabs(ang()) < right_angle)//while (dL() + -dR() < BOT_RADIUS * 3.14159)
   {
     update();
@@ -470,7 +477,7 @@ void right()
   }
   motors.setSpeeds(-5,-5);
   // delay(turnTime > (millis() - starting) ? turnTime - (millis() - starting) + 150: 150);
-  delay(100);
+  delay(200);
   reset();
 }
 
@@ -674,7 +681,7 @@ void turnSensorUpdate()
   // Read the measurements from the gyro.
   imu.readGyro();
   turnRate = imu.g.z - gyroOffset;
-  if(fabs(turnRate) * 0.07 < 0.1){return;}
+  if(fabs(turnRate) * 0.07 < 0.02){return;}
 
   // Figure out how much time has passed since the last update (dt)
   uint16_t m = micros();
