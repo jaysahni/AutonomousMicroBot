@@ -73,7 +73,7 @@
 
   double targetTime = 15; 
 
-  double lengthDist = 700;
+  double lengthDist = 770;
   double offset = 90; 
 
   double end_distance; //
