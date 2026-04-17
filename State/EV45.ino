@@ -18,8 +18,10 @@ const float WHEEL_CIRCUMFERENCE = 10.18;
 
 
 
-const float BOT_RADIUS = 3.742; // MURUGAN CHANGE THIS FOR TURN CALI left, increase = more turn
-const float RIGHT_RADIUS = 3.82; 
+const float BOT_RADIUS = 3.774; // MURUGAN CHANGE THIS FOR TURN CALI left, increase = more turn
+const float RIGHT_RADIUS = 3.8207; 
+
+
 
 
 double swerve_kP =  0; //0.05;
@@ -64,14 +66,14 @@ double full_turn = 174;
 // straight
 double kPs = 0.5; // small angle correction for going straight
 double kP = 0.4;  // for velocity control
-double str_min = 40;
+double str_min = 30;
 double mehta_sahni_constant = 0.025; // low to veer right, high to veer left
 
 // Movement Values (Change here) ------------------------------------------------------------------------------------------------------------------------
 
 double targetTime = 15; 
 
-double lengthDist = 1000;
+double lengthDist = 700;
 double offset = 90; 
 
 double end_distance; //
@@ -98,14 +100,14 @@ String buildCanBypass()
   seq += "L "; //  L
   seq+="D50 ";                
   seq += "F" + String(offset * sqrt(2), 1) + " ";  // offset straight
-  seq+="D50 ";
+  seq+="D250 ";
   seq += "R "; //+ String(2*angleDeg+7+constrain(20*(leg/350-1),2,10), 1) + " ";
   seq+="D50 ";
-  seq += "F" + String(lengthDist + BOT_RADIUS/2 - 2 * offset, 1) + " ";  // long straight
+  seq += "F" + String(lengthDist + 4.2/2 - 2 * offset, 1) + " ";  // long straight
   seq+="D50 ";
   seq += "R ";
   seq += "E";
-  end_distance=(offset - BOT_RADIUS/2) * sqrt(2);
+  end_distance=(offset - 4/2) * sqrt(2);
   return seq;
 }
 char movement[200];
@@ -207,7 +209,7 @@ void fwd(double distance)
 {
   update();
   double t0 = micros(); // Start time in microseconds
-  double delta_T = 1.7;
+  double delta_T = 2;
   double delta_T_us = delta_T * 1e6; // Convert delta_T from seconds to microseconds
   double left_pwm = str_min * 2;
   double right_pwm = str_min * 2;
@@ -240,8 +242,8 @@ void fwd(double distance)
         double t_dec = elapsed_time - 3 * delta_T_us / 4;
         velocity_setpoint = (16.0 * distance) / (3.0 * delta_T * delta_T) * ((delta_T / 4) - t_dec / 1e6);
       }
-    if (velocity_setpoint < 40){
-      velocity_setpoint = 40;
+    if (velocity_setpoint < 25){
+      velocity_setpoint = 25;
     }
 
     // Update PWM values based on velocity feedback and setpoint
@@ -305,11 +307,11 @@ void longf(double distance)
     else
     {
       // Deceleration phase
-      double t_dec = elapsed_time - 15 * delta_T_us / 16;
-      velocity_setpoint = (256.0 * distance) / (15.0 * delta_T * delta_T) * ((delta_T / 16) - t_dec / 1e6);
+      double t_dec = elapsed_time - 14 * delta_T_us / 16;
+      velocity_setpoint = (256.0 * distance) / (14.0 * delta_T * delta_T) * ((delta_T / 16) - t_dec / 1e6);
     }
-    if (velocity_setpoint < 40){
-      velocity_setpoint = 40;
+    if (velocity_setpoint < 30){
+      velocity_setpoint = 30;
     }
 
     // Update PWM values based on velocity feedback and setpoint
@@ -320,7 +322,7 @@ void longf(double distance)
     right_pwm += kP * velocity_error_R;
 
     // Constrain PWM values to valid range
-    left_pwm = constrain(left_pwm, str_min, 400);
+    left_pwm = constrain(left_pwm, str_min +3, 400);
     right_pwm = constrain(right_pwm, str_min, 400);
     right_pwm -= kPs * ang();
     // Set motor speeds
