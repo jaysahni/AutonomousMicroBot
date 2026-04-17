@@ -207,7 +207,7 @@ void fwd(double distance)
 {
   update();
   double t0 = micros(); // Start time in microseconds
-  double delta_T = 2;
+  double delta_T = 1.7;
   double delta_T_us = delta_T * 1e6; // Convert delta_T from seconds to microseconds
   double left_pwm = str_min * 2;
   double right_pwm = str_min * 2;
@@ -240,8 +240,8 @@ void fwd(double distance)
         double t_dec = elapsed_time - 3 * delta_T_us / 4;
         velocity_setpoint = (16.0 * distance) / (3.0 * delta_T * delta_T) * ((delta_T / 4) - t_dec / 1e6);
       }
-    if (velocity_setpoint < 20){
-      velocity_setpoint = 20;
+    if (velocity_setpoint < 40){
+      velocity_setpoint = 40;
     }
 
     // Update PWM values based on velocity feedback and setpoint
@@ -270,7 +270,7 @@ void longf(double distance)
 {
   update();
   double t0 = micros(); // Start time in microseconds
-  double delta_T = targetTime - 5;
+  double delta_T = targetTime - 6;
   double delta_T_us = delta_T * 1e6; // Convert delta_T from seconds to microseconds
   double left_pwm = str_min;
   double right_pwm = str_min;
@@ -308,8 +308,8 @@ void longf(double distance)
       double t_dec = elapsed_time - 15 * delta_T_us / 16;
       velocity_setpoint = (256.0 * distance) / (15.0 * delta_T * delta_T) * ((delta_T / 16) - t_dec / 1e6);
     }
-    if (velocity_setpoint < 30){
-      velocity_setpoint = 30;
+    if (velocity_setpoint < 40){
+      velocity_setpoint = 40;
     }
 
     // Update PWM values based on velocity feedback and setpoint
