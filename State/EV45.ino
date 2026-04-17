@@ -18,8 +18,8 @@
 
 
 
-  const float BOT_RADIUS = 3.774; // MURUGAN CHANGE THIS FOR TURN CALI left, increase = more turn
-  const float RIGHT_RADIUS = 3.8207; 
+  const float BOT_RADIUS = 3.72; // MURUGAN CHANGE THIS FOR TURN CALI left, increase = more turn
+  const float RIGHT_RADIUS = 3.737; 
 
 
 
@@ -97,7 +97,7 @@
     double leg = sqrt(pow(halfDist, 2) + pow(offset, 2));
 
     String seq = "";  
-    seq += "L "; //  L
+    seq += "L "; //l
     seq+="D50 ";                
     seq += "F" + String(offset * sqrt(2), 1) + " ";  // offset straight
     seq+="D250 ";
