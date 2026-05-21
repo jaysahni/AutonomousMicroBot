@@ -17,7 +17,6 @@
   const float WHEEL_CIRCUMFERENCE = 10.18;
 
 
-
   const float BOT_RADIUS = 3.72; // MURUGAN CHANGE THIS FOR TURN CALI left, increase = more turn
   const float RIGHT_RADIUS = 3.737; 
 
@@ -101,8 +100,8 @@
     seq+="D50 ";
     seq += "R ";
     seq += "F" + String(offset * sqrt(2), 1) + " ";
-    seq += "L"
-    seq+="D250 ";
+    seq += "L ";
+    seq +="D250 ";
     seq += "E";
     end_distance=0.5*(lengthDist - offset*2 -50 );
     return seq;
@@ -269,7 +268,7 @@
   {
     update();
     double t0 = micros(); // Start time in microseconds
-    double delta_T = targetTime - 6;
+    double delta_T = 6;
     double delta_T_us = delta_T * 1e6; // Convert delta_T from seconds to microseconds
     double left_pwm = str_min;
     double right_pwm = str_min;
