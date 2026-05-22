@@ -14,11 +14,12 @@
   const int CLICKS_PER_ROTATION = 12;
   const float GEAR_RATIO = 29.86F;
   const float WHEEL_DIAMETER = 3.2;
-  const float WHEEL_CIRCUMFERENCE = 10.18;
+  const float WHEEL_CIRCUMFERENCE = 10.21;
 
 
-  const float BOT_RADIUS = 3.72; // MURUGAN CHANGE THIS FOR TURN CALI left, increase = more turn
-  const float RIGHT_RADIUS = 3.737; 
+
+  const float BOT_RADIUS = 3.76; // MURUGAN CHANGE THIS FOR TURN CALI left, increase = more turn
+  const float RIGHT_RADIUS = BOT_RADIUS -0.01; 
 
 
 
@@ -72,7 +73,7 @@
 
   double targetTime = 20; 
 
-  double lengthDist = 770;
+  double lengthDist = 700;
   double offset = 90; 
 
   double end_distance; //
@@ -89,19 +90,20 @@
     // offset = sideways distance from the center line to the can gap (cm)
 
     String seq = "";
+
     seq += "F" +  String(0.5*(lengthDist - offset*2 -50 )) + " ";
     seq += "L "; //l
     seq+="D50 ";                
     seq += "F" + String(offset * sqrt(2), 1) + " ";  // offset straight
     seq+="D250 ";
-    seq += "R "; //+ String(2*angleDeg+7+constrain(20*(leg/350-1),2,10), 1) + " ";
+    seq += "R "; //+
     seq+="D50 ";
-    seq += "F" + String(50, 1) + " ";  // long straight
+    seq += "F50 ";  
     seq+="D50 ";
     seq += "R ";
     seq += "F" + String(offset * sqrt(2), 1) + " ";
-    seq += "L ";
-    seq +="D250 ";
+    seq += "L";
+    seq+="D250 ";
     seq += "E";
     end_distance=0.5*(lengthDist - offset*2 -50 );
     return seq;
@@ -126,10 +128,6 @@
     pinMode(DN1_PIN, INPUT);
     buzzer.playFrequency(880, 120, 15);
 
-
-    delay(1000);
-
-    
 
     start_time = micros();
 
@@ -240,7 +238,7 @@
   {
     update();
     double t0 = micros(); // Start time in microseconds
-    double delta_T = 6;
+    double delta_T = distance/400 * 6;
     double delta_T_us = delta_T * 1e6; // Convert delta_T from seconds to microseconds
     double left_pwm = str_min;
     double right_pwm = str_min;
