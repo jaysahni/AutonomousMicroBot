@@ -127,37 +127,9 @@
     buzzer.playFrequency(880, 120, 15);
 
 
-    bool armed = false;
+    delay(1000);
 
-    while (!armed)
-    {
-      int s = digitalRead(DN1_PIN);
-
-      if (s == LOW)
-      {
-        if (tHighStart == 0) tHighStart = millis();
-
-        // if it’s been high long enough, mark ready
-        if (millis() - tHighStart >= holdRequiredMs)
-        {
-          armed = true;
-
-          // play "ready to release" tone
-          buzzer.playFrequency(1200, 200, 15);
-          buzzer.playFrequency(1600, 200, 15);
-
-          // wait until the trigger goes LOW to actually start moving
-          while (digitalRead(DN1_PIN) == LOW) { delay(1); }
-          delay(debounceMs);
-        }
-      }
-      else
-      {
-        tHighStart = 0;
-      }
-
-    }
-
+    
 
     start_time = micros();
 
